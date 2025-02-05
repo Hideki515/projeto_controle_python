@@ -21,6 +21,8 @@ def adicionar_gasto():
     descricao = input("Digite a descrição: ")
     valor = input("Digite o valor gasto: ")
 
+    categoria = categoria.lower()
+
     # Converter valor para float, substituindo "," por "."
     try:
         valor = float(valor.replace(",", "."))
@@ -60,23 +62,46 @@ def listar_gastos():
         print("🚨 Arquivo não encontrado. Nenhum gasto cadastrado ainda.")
 
 
+def filtrar_por_categoria():
+    categoria = input("Digite a categoria: ")
+
+    with open(arquivo_csv, mode="r", newline='') as file:
+        reader = csv.reader(file)
+        next(reader)
+        total = 0
+        categoria = categoria.lower()
+        print(f"\n🔍 Gastos na categoria: {categoria}")
+        for linha in reader:
+            if linha[1].lower() == categoria:
+                print(f"{linha[0]} | {linha[2]} | R$ {linha[3]}")
+                total += float(linha[3])
+        print("-" * 50)
+        print(f"💰 Total na categoria {categoria}: R$ {total:.2f}\n")
+
+
 def menu():
     while True:
         print("\n=== MENU ===")
         print("1 - Adicionar gasto")
         print("2 - Listar gastos")
-        print("3 - Sair")
+        print('3 - Fieltar por categoria')
+        print("4 - ")
+        print("4 - Sair")
+
         opcao = input("Escolha uma opção: ")
 
-        if opcao == "1":
-            adicionar_gasto()
-        elif opcao == "2":
-            listar_gastos()
-        elif opcao == "3":
-            print("👋 Saindo do programa...")
-            break
-        else:
-            print("❌ Opção inválida! Tente novamente.")
+        match opcao:
+            case "1":
+                adicionar_gasto()
+            case "2":
+                listar_gastos()
+            case "3":
+                filtrar_por_categoria()
+            case "4":
+                print("👋 Saindo do programa...")
+                break
+            case _:
+                print("❌ Opção inválida! Tente novamente.")
 
 
 menu()
