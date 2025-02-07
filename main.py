@@ -4,7 +4,12 @@
 
 import customtkinter as ctk
 import os
+import csv
 from PIL import Image  # pip install pillow
+from datetime import datetime
+from tkinter import messagebox
+
+arquivo_csv = './gastos.csv'
 
 
 class App(ctk.CTk):
@@ -152,18 +157,24 @@ class App(ctk.CTk):
         self.home_frame = ctk.CTkFrame(self,
                                        corner_radius=0,
                                        fg_color='transparent')
+
         self.expenses_frame = ctk.CTkFrame(self,
                                            corner_radius=0,
                                            fg_color='transparent')
+        self.expenses_frame.grid_columnconfigure(7, weight=1)
+
         self.list_frame = ctk.CTkFrame(self,
                                        corner_radius=0,
                                        fg_color='transparent')
+
         self.list_category_frame = ctk.CTkFrame(self,
                                                 corner_radius=0,
                                                 fg_color='transparent')
+
         self.list_month_frame = ctk.CTkFrame(self,
                                              corner_radius=0,
                                              fg_color='transparent')
+
         self.export_frame = ctk.CTkFrame(self,
                                          corner_radius=0,
                                          fg_color='transparent')
@@ -174,7 +185,7 @@ class App(ctk.CTk):
                                        font=('Arial Bold', 36))
 
         self.title_expenses = ctk.CTkLabel(self.expenses_frame,
-                                           text='Expenses Page',
+                                           text='Adicionar Gasto',
                                            font=('Arial Bold', 36))
 
         self.title_list = ctk.CTkLabel(self.list_frame,
@@ -193,7 +204,111 @@ class App(ctk.CTk):
                                          text='Export Page',
                                          font=('Arial Bold', 36))
 
+        # Campos Adcionar Gastos
+        # Campo Data
+        self.label_date = ctk.CTkLabel(self.expenses_frame,
+                                       text='Data: ',
+                                       font=('Arial', 13))
+
+        self.input_date = ctk.CTkEntry(self.expenses_frame,
+                                       width=250,
+                                       corner_radius=6)
+
+        # Dropdown Categoria
+        self.label_categoy = ctk.CTkLabel(self.expenses_frame,
+                                          text='Categoria: ',
+                                          font=('Arial', 12))
+        self.dropdown_categoria = ctk.CTkOptionMenu(self.expenses_frame,
+                                                    values=[
+                                                        'Alimentação', 'Transporte', 'Saúde', 'Educação', 'Lazer', 'Outros'],
+                                                    fg_color='black',
+                                                    width=250,
+                                                    button_hover_color='purple',
+                                                    button_color='gray',
+                                                    corner_radius=6)
+        self.dropdown_categoria.set("Selecione uma categoria")
+
+        # Campo de Descrição
+        self.label_description = ctk.CTkLabel(self.expenses_frame,
+                                              text='Descrição do gasto: ',
+                                              font=('Arial', 12))
+
+        self.input_description = ctk.CTkEntry(self.expenses_frame,
+                                              placeholder_text='Descrição do gasto',
+                                              width=250,
+                                              corner_radius=6)
+
+        # Campo de Valor
+        self.label_value = ctk.CTkLabel(self.expenses_frame,
+                                        text='Valor gastado: ',
+                                        font=('Arial', 12))
+        self.input_currency = ctk.CTkEntry(self.expenses_frame,
+                                           placeholder_text='Valor do gasto: ',
+                                           width=250,
+                                           corner_radius=6)
+
+        # Botão Adicionar Gasto
+        self.button_add_expense = ctk.CTkButton(self.expenses_frame,
+                                                text='Adicionar Gasto',
+                                                font=('Arial', 12),
+                                                fg_color='green',
+                                                hover_color='darkgreen',
+                                                border_width=0,
+                                                corner_radius=7,
+                                                command=self.add_expense)
+
         self.select_frame_by_name("Home")
+
+    def add_expense(self):
+        data = self.input_date.get()
+        categoria = self.dropdown_categoria.get().lower()
+        descricao = self.input_description.get()
+        valor = self.input_currency.get()
+
+        if categoria == "Selecione uma categoria" or not descricao or not valor:
+            print(data, categoria, descricao, valor)
+            messagebox.showwarning(
+                "Aviso", "Todos os campos devem ser preenchidos!")
+            return
+
+        if not os.path.isfile(arquivo_csv):
+
+            print("Arquivo CSV não encontrado. Nenhum gasto cadastrado ainda.")
+
+            with open(arquivo_csv, mode="w", newline='') as file:
+                writer = csv.writer(file, delimiter=",")
+                writer.writerow(["Data", "Categoria", "Descrição", "Valor"])
+
+        with open(arquivo_csv, mode="a", newline='') as file:
+            writer = csv.writer(file, delimiter=",")
+            writer.writerow([data, categoria, descricao, valor])
+
+        messagebox.showinfo(
+            "Sucesso", "Gasto adicionado com sucesso!")
+        self.input_date.delete(0, "end")
+        self.input_description.delete(0, "end")
+        self.dropdown_categoria.set("Selecione uma categoria")
+        self.input_currency.delete(0, "end")
+        self.input_currency.insert(0, "R$ 0.00")
+
+    def format_currency(self, event):
+        texto = self.input_currency.get()
+
+        # Remove caracteres não numéricos
+        texto = ''.join(filter(str.isdigit, texto))
+
+        if texto == "":
+            self.input_currency.delete(0, "end")
+            self.input_currency.insert(0, "R$ 0.00")
+            return
+
+        # Converte para fornmato monetário
+        self.valor = int(texto) / 100
+        self.texto_formatado = f"R$ {self.valor:,.2f}".replace(
+            ",", "X").replace(".", ",").replace("X", ".")
+
+        self.input_currency.delete(0, "end")
+        self.input_currency.insert(0, self.texto_formatado)
 
     def select_frame_by_name(self, name):
         self.home_button.configure(fg_color="gray"
@@ -223,6 +338,26 @@ class App(ctk.CTk):
         if name == "Adicionar Gasto":
             self.expenses_frame.grid(row=0, column=1, sticky="nsew")
             self.title_expenses.grid(row=0, column=0, pady=20, padx=20)
+
+            self.label_date.grid(row=1, column=0, pady=10, padx=10)
+            self.input_date.grid(row=1, column=1, pady=10, padx=10)
+            self.input_date.configure(state='normal')
+            self.input_date.insert(0, datetime.now().strftime("%d.%m.%Y"))
+            self.input_date.configure(state='readonly')
+
+            self.label_categoy.grid(row=2, column=0, pady=10, padx=10)
+            self.dropdown_categoria.grid(row=2, column=1, pady=10, padx=10)
+
+            self.label_description.grid(row=3, column=0, pady=10, padx=10)
+            self.input_description.grid(row=3, column=1, pady=10, padx=10)
+
+            self.label_value.grid(row=4, column=0, pady=10, padx=10)
+            self.input_currency.grid(row=4, column=1, pady=10, padx=10)
+
+            self.input_currency.insert(0, "R$ 0.00")
+            self.input_currency.bind("<KeyRelease>", self.format_currency)
+
+            self.button_add_expense.grid(row=5, column=1, pady=10, padx=10)
         else:
             self.expenses_frame.grid_forget()
 
