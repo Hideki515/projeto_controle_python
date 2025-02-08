@@ -401,6 +401,13 @@ class App(ctk.CTk):
             self.expenses_frame.grid(row=0, column=1, sticky="nsew")
             self.title_expenses.grid(row=0, column=0, pady=20, padx=20)
 
+            self.input_date.configure(state='normal')
+            self.input_date.delete(0, "end")
+            self.input_date.configure(state='readonly')
+            self.input_description.delete(0, "end")
+            self.dropdown_categoria.set("Selecione uma categoria")
+            self.input_currency.delete(0, "end")
+
             self.label_date.grid(row=1, column=0, pady=10, padx=10)
             self.input_date.grid(row=1, column=1, pady=10, padx=10)
             self.input_date.configure(state='normal')
