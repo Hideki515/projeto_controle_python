@@ -1,10 +1,10 @@
 # encoding: utf-8
-# encoding: iso-8859-1
-# encoding: win-1252
 
 import customtkinter as ctk
+import tkinter as tk
 import os
 import csv
+from tkinter import ttk
 from PIL import Image  # pip install pillow
 from datetime import datetime
 from tkinter import messagebox
@@ -18,7 +18,7 @@ class App(ctk.CTk):
 
         # Configuração da Janela
         self.title('Gerenciador de Gastos')  # Title of the window
-        self.geometry('900x700')  # width x height
+        self.geometry('1060x700')  # width x height
 
         # Configuração do grid 1x2
         self.grid_rowconfigure(0, weight=1)
@@ -189,7 +189,7 @@ class App(ctk.CTk):
                                            font=('Arial Bold', 36))
 
         self.title_list = ctk.CTkLabel(self.list_frame,
-                                       text='List Page',
+                                       text='Listar Gastos',
                                        font=('Arial Bold', 36))
 
         self.title_list_category = ctk.CTkLabel(self.list_category_frame,
@@ -257,6 +257,51 @@ class App(ctk.CTk):
                                                 corner_radius=7,
                                                 command=self.add_expense)
 
+        # Tabela de Gastos
+        self.style_tree = ttk.Style()
+        self.style_tree.theme_use("clam")
+        self.style_tree.configure("Treeview",
+                                  background="#2A2A2A",
+                                  foreground="white",
+                                  rowheight=25,
+                                  fieldbackground="#2A2A2A",
+                                  borderwidth=2)
+
+        self.style_tree.map("Treeview", background=[("selected", "#1F6AA5")])
+
+        self.style_tree.configure("Treeview.Heading",
+                                  background="#1F1F1F",
+                                  foreground="white",
+                                  font=("Arial", 10, "bold"))
+
+        self.table_frame = ctk.CTkFrame(self.list_frame,
+                                        corner_radius=6)
+        self.table_frame.grid(row=0, column=0, pady=10, sticky="nsew")
+
+        columns = ("Data", "Categoria", "Descrição", "Valor")
+        self.tree = ttk.Treeview(self.table_frame,
+                                 columns=columns,
+                                 show="headings")
+
+        self.tree.heading("Data", text="Data")
+        self.tree.column("Data", anchor="center")
+
+        self.tree.heading("Categoria", text="Categoria")
+        self.tree.column("Categoria", anchor="center")
+
+        self.tree.heading("Descrição", text="Descrição")
+        self.tree.column("Descrição", anchor="center")
+
+        self.tree.heading("Valor", text="Valor")
+        self.tree.column("Valor", anchor="center")
+
+        self.tree.grid(row=1, column=0, sticky="nsew")
+
+        self.lbl_total = ctk.CTkLabel(self.list_frame,
+                                      text="Total: R$ 0.00",
+                                      font=("Arial", 12, "bold"))
+        self.lbl_total.grid(row=2, column=0, pady=10)
+
         self.select_frame_by_name("Home")
 
     def add_expense(self):
@@ -309,6 +354,23 @@ class App(ctk.CTk):
 
         self.input_currency.delete(0, "end")
         self.input_currency.insert(0, self.texto_formatado)
+
+    def list_expenses(self):
+        for row in self.tree.get_children():
+            self.tree.delete(row)
+
+        with open(arquivo_csv, mode="r", newline='') as file:
+            reader = csv.reader(file)
+            next(reader)
+            total = 0
+            for linha in reader:
+                self.tree.insert("", "end", values=linha)
+                self.convert_currency = linha[3].replace(
+                    "R$", "").replace(",", "").strip()
+                self.converted_currency = float(self.convert_currency)
+                total += self.converted_currency
+
+        self.lbl_total.configure(text=f"Total: R$ {total:.2f}")
 
     def select_frame_by_name(self, name):
         self.home_button.configure(fg_color="gray"
@@ -364,6 +426,10 @@ class App(ctk.CTk):
         if name == "Listar Gastos":
             self.list_frame.grid(row=0, column=1, sticky="nsew")
             self.title_list.grid(row=0, column=0, pady=20, padx=20)
+
+            self.list_expenses()
+            self.lbl_total.grid(row=7, column=0, pady=10)
+
         else:
             self.list_frame.grid_forget()
 
