@@ -8,6 +8,7 @@ from tkinter import ttk
 from PIL import Image  # pip install pillow
 from datetime import datetime
 from tkinter import messagebox
+from tkinter.filedialog import *
 
 arquivo_csv = './gastos_teste.csv'
 
@@ -200,7 +201,8 @@ class App(ctk.CTk):
                                              font=('Arial Bold', 36))
 
         self.title_export = ctk.CTkLabel(self.export_frame,
-                                         text='Export Page',
+                                         text='Exportar Gastos',
+                                         justify='center',
                                          font=('Arial Bold', 36))
 
         self.select_frame_by_name("Home")
@@ -434,6 +436,43 @@ class App(ctk.CTk):
                                             text="Total de gastos: R$ 0.00",
                                             font=("Arial", 12, "bold"))
 
+    def export_files(self):
+        self.export_csv_button = ctk.CTkButton(self.export_frame,
+                                               text='Exportar para CSV',
+                                               font=('Arial', 12),
+                                               fg_color='green',
+                                               hover_color='darkgreen',
+                                               border_width=0,
+                                               corner_radius=7,
+                                               command=self.export_csv_button_click)
+
+    def export_csv(self):
+        file_path = asksaveasfilename(defaultextension=".csv", filetypes=[
+                                      ("CSV files", "*.csv")])
+
+        if not file_path:
+            return
+
+        try:
+            with open(arquivo_csv, mode="r", newline='') as file, open(file_path, mode="w", newline='') as file_export:
+                reader = csv.reader(file)
+                writer = csv.writer(file_export, delimiter=",")
+                for row in reader:
+                    writer.writerow(row)
+
+            # Informa o usuario
+            messagebox.showinfo(
+                "Sucesso", f"Arquivo exportado para: {file_path}")
+
+        except Exception as e:
+            messagebox.showerror(
+                "Erro", f"Ocorreu um erro ao exportar o arquivo: {e}")
+
+        return
+
+    def export_csv_button_click(self):
+        self.export_csv()
+
     def add_expense(self):
         data = self.input_date.get()
         categoria = self.dropdown_categoria.get().lower()
@@ -441,14 +480,11 @@ class App(ctk.CTk):
         valor = self.input_currency.get()
 
         if categoria == "Selecione uma categoria" or not descricao or not valor:
-            print(data, categoria, descricao, valor)
             messagebox.showwarning(
                 "Aviso", "Todos os campos devem ser preenchidos!")
             return
 
         if not os.path.isfile(arquivo_csv):
-
-            print("Arquivo CSV não encontrado. Nenhum gasto cadastrado ainda.")
 
             with open(arquivo_csv, mode="w", newline='') as file:
                 writer = csv.writer(file, delimiter=",")
@@ -535,8 +571,6 @@ class App(ctk.CTk):
     def list_month_expenses(self, *args):
         month_select = self.month_filter_var.get().lower()
 
-        print(f'O mês selecionado foi: {month_select}')
-
         match month_select:
             case "selecione um mês":
                 month_number = '00'
@@ -564,8 +598,6 @@ class App(ctk.CTk):
                 month_number = '11'
             case "dezembro":
                 month_number = '12'
-
-        print(f'O mês selecionado foi: {month_number}')
 
         for row in self.tree_catagory.get_children():  # Use tree_catagory aqui
             self.tree_catagory.delete(row)
@@ -716,7 +748,13 @@ class App(ctk.CTk):
 
         if name == "Exportar Gastos":
             self.export_frame.grid(row=0, column=1, sticky="nsew")
-            self.title_export.grid(row=0, column=0, pady=20, padx=20)
+            self.title_export.grid(pady=20, padx=20, sticky="nsew")
+
+            self.export_files()
+
+            self.export_csv_button.grid(row=1, column=0, pady=10,
+                                        padx=10, sticky="nsew")
+
         else:
             self.export_frame.grid_forget()
 
@@ -737,9 +775,6 @@ class App(ctk.CTk):
 
     def export_button_click(self):
         self.select_frame_by_name('Exportar Gastos')
-
-    def change_apparence_mode(self, mode):
-        print(f'Apparence mode changed to {mode}')
 
 
 if __name__ == '__main__':
