@@ -430,7 +430,7 @@ class App(ctk.CTk):
                 self.converted_currency = float(self.convert_currency)
                 total += self.converted_currency
 
-        self.lbl_total_catagory.configure(
+        self.lbl_total.configure(
             text=f"Total de gastos: R$ {total:.2f}")
 
     def list_category_expenses(self, *args):
