@@ -9,7 +9,7 @@ from PIL import Image  # pip install pillow
 from datetime import datetime
 from tkinter import messagebox
 
-arquivo_csv = './gastos.csv'
+arquivo_csv = './gastos_teste.csv'
 
 
 class App(ctk.CTk):
@@ -259,8 +259,6 @@ class App(ctk.CTk):
                                                 corner_radius=7,
                                                 command=self.add_expense)
 
-        # Tabela de Gastos
-
     def table_expenses(self):
         self.style_tree = ttk.Style()
         self.style_tree.theme_use("clam")
@@ -306,6 +304,65 @@ class App(ctk.CTk):
                                       text="Total de gastos: R$ 0.00",
                                       font=("Arial", 12, "bold"))
         self.lbl_total.grid(row=2, column=0, pady=10)
+
+    def table_category_list(self):
+        # Dropdown Categoria
+        self.categoria_filter_var = tk.StringVar()
+        self.dropdown_categoria_filter = ctk.CTkOptionMenu(self.list_category_frame,
+                                                           values=[
+                                                               'Alimentação', 'Transporte', 'Saúde', 'Educação', 'Lazer', 'Outros'],
+                                                           fg_color='black',
+                                                           width=250,
+                                                           button_hover_color='purple',
+                                                           button_color='gray',
+                                                           variable=self.categoria_filter_var,
+                                                           corner_radius=6)
+        self.dropdown_categoria_filter.set("Selecione uma categoria")
+
+        self.style_tree_category = ttk.Style()
+        self.style_tree_category.theme_use("clam")
+        self.style_tree_category.configure("Treeview",
+                                           background="#2A2A2A",
+                                           foreground="white",
+                                           rowheight=25,
+                                           fieldbackground="#2A2A2A",
+                                           borderwidth=0,
+                                           padding=5)
+
+        self.style_tree_category.map("Treeview", background=[
+                                     ("selected", "#1F6AA5")])
+
+        self.style_tree_category.configure("Treeview.Heading",
+                                           background="#1F1F1F",
+                                           foreground="white",
+                                           font=("Arial", 10, "bold"))
+
+        self.table_frame_catagory = ctk.CTkFrame(self.list_category_frame,
+                                                 corner_radius=6)
+        self.table_frame_catagory.grid(row=2, column=0, pady=10, sticky="nsew")
+
+        columns = ("Data", "Categoria", "Descrição", "Valor")
+        self.tree_catagory = ttk.Treeview(self.table_frame_catagory,
+                                          columns=columns,
+                                          show="headings")
+
+        self.tree_catagory.heading("Data", text="Data")
+        self.tree_catagory.column("Data", anchor="center")
+
+        self.tree_catagory.heading("Categoria", text="Categoria")
+        self.tree_catagory.column("Categoria", anchor="w")
+
+        self.tree_catagory.heading("Descrição", text="Descrição")
+        self.tree_catagory.column("Descrição", anchor="w")
+
+        self.tree_catagory.heading("Valor", text="Valor")
+        self.tree_catagory.column("Valor", anchor="w")
+
+        self.tree_catagory.grid(row=1, column=0, sticky="nsew")
+
+        self.lbl_total_catagory = ctk.CTkLabel(self.list_category_frame,
+                                               text="Total de gastos: R$ 0.00",
+                                               font=("Arial", 12, "bold"))
 
     def add_expense(self):
         data = self.input_date.get()
@@ -369,32 +426,42 @@ class App(ctk.CTk):
             for linha in reader:
                 self.tree.insert("", "end", values=linha)
                 self.convert_currency = linha[3].replace(
-                    "R$", "").replace(",", "").strip()
+                    "R$", "").replace(",", ".").strip()
                 self.converted_currency = float(self.convert_currency)
                 total += self.converted_currency
 
-        self.lbl_total.configure(text=f"Total de gastos: R$ {total:.2f}")
+        self.lbl_total_catagory.configure(
+            text=f"Total de gastos: R$ {total:.2f}")
 
-    def list_category_expenses(self):
-        for row in self.tree.get_children():
-            self.tree.delete(row)
+    def list_category_expenses(self, *args):
+        categoria_selecionada = self.categoria_filter_var.get().lower()
 
-        with open(arquivo_csv, mode="r", newline='') as file:
-            reader = csv.reader(file)
-            next(reader)
+        for row in self.tree_catagory.get_children():  # Use tree_catagory aqui
+            self.tree_catagory.delete(row)
+
+        total = 0
+
+        try:  # Lidar com FileNotFoundError
+            with open(arquivo_csv, mode="r", newline='') as csv_file:
+                reader_csv = csv.reader(csv_file)
+                next(reader_csv)  # Pular o cabeçalho
+
+                for linha_csv in reader_csv:
+                    if categoria_selecionada == "selecione uma categoria" or linha_csv[1].lower() == categoria_selecionada:
+                        self.tree_catagory.insert("", "end", values=linha_csv)
+                        self.valor = linha_csv[3].replace(
+                            "R$", "").replace(",", ".").strip()
+                        self.valor_float = float(self.valor)
+                        total = total + self.valor_float
+
+        except FileNotFoundError:
             total = 0
-            for linha in reader:
-                if linha[1] == self.dropdown_categoria.get():
-                    self.tree.insert("", "end", values=linha)
-                    self.convert_currency = linha[3].replace(
-                        "R$", "").replace(",", "").strip()
-                    self.converted_currency = float(self.convert_currency)
-                    total += self.converted_currency
-                self.tree.insert("", "end", values=linha)
-                self.convert_currency = linha[3].replace(
-                    "R$", "").replace(",", "").strip()
-                self.converted_currency = float(self.convert_currency)
-                total += self.converted_currency
+            messagebox.showwarning(
+                "Aviso", f"Arquivo {arquivo_csv} não encontrado.")
+            return
+
+        self.lbl_total_catagory.configure(
+            text=f'Total de gastos: R$ {total:.2f}')
 
     def select_frame_by_name(self, name):
         self.home_button.configure(fg_color="gray"
@@ -478,9 +545,19 @@ class App(ctk.CTk):
             self.list_category_frame.grid(row=0, column=1, sticky="nsew")
             self.title_list_category.grid(row=0, column=0, pady=20, padx=20)
 
-            self.list_category_expenses()
+            self.table_category_list()
 
-            self.lbl_total.grid(row=7, column=0, pady=10)
+            self.dropdown_categoria_filter.grid(
+                row=1, column=0, pady=10, padx=10)
+
+            self.categoria_filter_var.trace("w", self.list_category_expenses)
+
+            # print(
+            #     f'Categoria selecionada: {self.dropdown_categoria_filter.get()}')
+
+            self.list_category_expenses()
+            self.lbl_total_catagory.grid(row=7, column=0, pady=10)
+
         else:
             self.list_category_frame.grid_forget()
 
