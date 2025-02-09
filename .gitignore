@@ -1,2 +1,7 @@
 *csv
 tempCodeRunnerFile.py
+
+build/*
+dist/*
+
+main.spec
