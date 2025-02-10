@@ -3,6 +3,7 @@
 import customtkinter as ctk
 import tkinter as tk
 import os
+import sys
 import csv
 from tkinter import ttk
 from PIL import Image  # pip install pillow
@@ -10,7 +11,7 @@ from datetime import datetime
 from tkinter import messagebox
 from tkinter.filedialog import *
 
-arquivo_csv = './gastos_teste.csv'
+arquivo_csv = './gastos.csv'
 
 
 class App(ctk.CTk):
@@ -26,28 +27,22 @@ class App(ctk.CTk):
         self.grid_rowconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
 
-        # Pegando imagens
-        image_path = os.path.join(os.path.dirname(
-            os.path.realpath(__file__)), 'img')
+        # Ajustando o caminho das imagens
+        image_path = self.get_resource_path("img")
 
+        # Carregando imagens
         self.logo_image = ctk.CTkImage(Image.open(
             os.path.join(image_path, "dollar.png")), size=(26, 26))
-
         self.icon_gasto = ctk.CTkImage(Image.open(
             os.path.join(image_path, "icon_gasto.png")), size=(26, 26))
-
         self.icon_home = ctk.CTkImage(Image.open(
             os.path.join(image_path, "icon_home.png")), size=(26, 26))
-
         self.icon_list = ctk.CTkImage(Image.open(
             os.path.join(image_path, "icon_lista.png")), size=(26, 26))
-
         self.icon_categoria = ctk.CTkImage(Image.open(
             os.path.join(image_path, "icon_categoria.png")), size=(26, 26))
-
         self.icon_calendar = ctk.CTkImage(Image.open(
             os.path.join(image_path, "icon_calendar.png")), size=(26, 26))
-
         self.icon_csv = ctk.CTkImage(Image.open(
             os.path.join(image_path, "icon_csv.png")), size=(26, 26))
 
@@ -148,13 +143,6 @@ class App(ctk.CTk):
                                            command=self.export_button_click)
         self.export_button.grid(row=6, column=0, sticky="ew")
 
-        # self.apparence_mode_menu = ctk.CTkOptionMenu(self.navegation_frame,
-        #                                              values=[
-        #                                                  'Light', 'Dark', 'System'],
-        #                                              command=self.change_apparence_mode)
-        # self.apparence_mode_menu.grid(
-        #     row=7, column=0, pady=20, padx=20, sticky="s")
-
         self.home_frame = ctk.CTkFrame(self,
                                        corner_radius=0,
                                        fg_color='transparent')
@@ -206,6 +194,15 @@ class App(ctk.CTk):
                                          font=('Arial Bold', 36))
 
         self.select_frame_by_name("Home")
+
+    def get_resource_path(self, relative_path):
+        """ Retorna o caminho correto para arquivos, considerando o .exe """
+        if getattr(sys, 'frozen', False):  # Se o programa estiver rodando como .exe
+            base_path = sys._MEIPASS
+        else:
+            base_path = os.path.abspath(".")
+
+        return os.path.join(base_path, relative_path)
 
     def fields_expenses(self):
         # Campos Adcionar Gastos
@@ -525,16 +522,23 @@ class App(ctk.CTk):
         for row in self.tree.get_children():
             self.tree.delete(row)
 
-        with open(arquivo_csv, mode="r", newline='') as file:
-            reader = csv.reader(file)
-            next(reader)
+        try:
+            with open(arquivo_csv, mode="r", newline='') as file:
+                reader = csv.reader(file)
+                next(reader)
+                total = 0
+                for linha in reader:
+                    self.tree.insert("", "end", values=linha)
+                    self.convert_currency = linha[3].replace(
+                        "R$", "").replace(".", "").replace(",", ".").strip()
+                    self.converted_currency = float(self.convert_currency)
+                    total += self.converted_currency
+
+        except FileNotFoundError:
             total = 0
-            for linha in reader:
-                self.tree.insert("", "end", values=linha)
-                self.convert_currency = linha[3].replace(
-                    "R$", "").replace(",", ".").strip()
-                self.converted_currency = float(self.convert_currency)
-                total += self.converted_currency
+            messagebox.showwarning(
+                "Aviso", f"Arquivo {arquivo_csv} não encontrado.")
+            return
 
         self.lbl_total.configure(
             text=f"Total de gastos: R$ {total:.2f}")
@@ -556,7 +560,7 @@ class App(ctk.CTk):
                     if categoria_selecionada == "selecione uma categoria" or linha_csv[1].lower() == categoria_selecionada:
                         self.tree_catagory.insert("", "end", values=linha_csv)
                         self.valor = linha_csv[3].replace(
-                            "R$", "").replace(",", ".").strip()
+                            "R$", "").replace(".", "").replace(",", ".").strip()
                         self.valor_float = float(self.valor)
                         total = total + self.valor_float
         except FileNotFoundError:
@@ -622,7 +626,7 @@ class App(ctk.CTk):
                         # if month_select == "Selecione um Mês" or linha_csv[1].lower() == month_select:
                         self.tree_catagory.insert("", "end", values=linha_csv)
                         self.valor = linha_csv[3].replace(
-                            "R$", "").replace(",", ".").strip()
+                            "R$", "").replace(".", "").replace(",", ".").strip()
                         self.valor_float = float(self.valor)
                         total = total + self.valor_float
 
