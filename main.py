@@ -176,6 +176,96 @@ class AddExpenseFrame(ctk.CTkFrame):
         self.input_currency.insert(0, "R$ 0.00")
 
 
+class ListExpenseFrame(ctk.CTkFrame):
+    def __init__(self, master, frame):
+        super().__init__(master)
+        columns = ("Data", "Categoria", "Descrição", "Valor")
+
+        self.expenses_frame = frame
+
+        # Configurar grid do expenses_frame
+        self.expenses_frame.grid_columnconfigure(0, weight=1)
+        self.expenses_frame.grid_columnconfigure(1, weight=1)
+        # self.expenses_frame.grid_rowconfigure(6, weight=1)
+
+        # Titulo da página
+        self.title = ctk.CTkLabel(self.expenses_frame,
+                                  text='Listar Gasto',
+                                  font=('Arial Bold', 36),
+                                  justify='center')
+        self.title.grid(row=0, column=0, columnspan=2,
+                        pady=20, padx=20, sticky="nsew")
+
+        self.style_tree = ttk.Style()
+        self.style_tree.theme_use("clam")
+        self.style_tree.configure("Treeview",
+                                  background="#2A2A2A",
+                                  foreground="white",
+                                  rowheight=25,
+                                  fieldbackground="#2A2A2A",
+                                  borderwidth=0,
+                                  padding=5)
+        self.style_tree.map("Treeview", background=[("selected", "#1F6AA5")])
+
+        self.style_tree.configure("Treeview.Heading",
+                                  background="#1F1F1F",
+                                  foreground="white",
+                                  font=("Arial", 10, "bold"))
+        self.table_frame = ctk.CTkFrame(self.expenses_frame,
+                                        corner_radius=6)
+        self.table_frame.grid(row=2, column=0, pady=10, sticky="nsew")
+
+        self.tree = ttk.Treeview(self.table_frame,
+                                 columns=columns,
+                                 show="headings")
+
+        self.tree.heading("Data", text="Data")
+        self.tree.column("Data", anchor="center")
+
+        self.tree.heading("Categoria", text="Categoria")
+        self.tree.column("Categoria", anchor="w")
+
+        self.tree.heading("Descrição", text="Descrição")
+        self.tree.column("Descrição", anchor="w")
+
+        self.tree.heading("Valor", text="Valor")
+        self.tree.column("Valor", anchor="w")
+
+        self.tree.grid(row=1, column=0, sticky="nsew")
+
+        self.lbl_total = ctk.CTkLabel(self.expenses_frame,
+                                      text="Total de gastos: R$ 0.00",
+                                      font=("Arial", 12, "bold"))
+        self.lbl_total.grid(row=3, column=0, pady=10)
+
+        self.list_expenses()
+
+    def list_expenses(self):
+        for row in self.tree.get_children():
+            self.tree.delete(row)
+
+        try:
+
+            with open(arquivo_csv, mode="r", newline='') as file:
+                reader = csv.reader(file)
+                next(reader)
+                total = 0
+                for linha in reader:
+                    self.tree.insert("", "end", values=linha)
+                    self.convert_currency = linha[3].replace(
+                        "R$", "").replace(".", "").replace(",", ".").strip()
+                    self.converted_currency = float(self.convert_currency)
+                    total += self.converted_currency
+
+        except FileNotFoundError:
+            total = 0
+            messagebox.showwarning(
+                "Aviso", f"Arquivo {arquivo_csv} não encontrado.")
+            return
+
+        self.lbl_total.configure(text=f"Total de gastos: R$ {total:.2f}")
+
+
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
@@ -579,31 +669,6 @@ class App(ctk.CTk):
     def export_csv_button_click(self):
         self.export_csv()
 
-    def list_expenses(self):
-        for row in self.tree.get_children():
-            self.tree.delete(row)
-
-        try:
-            with open(arquivo_csv, mode="r", newline='') as file:
-                reader = csv.reader(file)
-                next(reader)
-                total = 0
-                for linha in reader:
-                    self.tree.insert("", "end", values=linha)
-                    self.convert_currency = linha[3].replace(
-                        "R$", "").replace(".", "").replace(",", ".").strip()
-                    self.converted_currency = float(self.convert_currency)
-                    total += self.converted_currency
-
-        except FileNotFoundError:
-            total = 0
-            messagebox.showwarning(
-                "Aviso", f"Arquivo {arquivo_csv} não encontrado.")
-            return
-
-        self.lbl_total.configure(
-            text=f"Total de gastos: R$ {total:.2f}")
-
     def list_category_expenses(self, *args):
         categoria_selecionada = self.categoria_filter_var.get().lower()
 
@@ -735,12 +800,9 @@ class App(ctk.CTk):
 
         if name == "Listar Gastos":
             self.list_frame.grid(row=0, column=1, sticky="nsew")
-            self.title_list.grid(row=0, column=0, pady=20, padx=20)
 
-            self.table_expenses()
-
-            self.list_expenses()
-            self.lbl_total.grid(row=7, column=0, pady=10)
+            self.ListExpenseFrame = ListExpenseFrame(
+                self, frame=self.list_frame)
 
         else:
             self.list_frame.grid_forget()
