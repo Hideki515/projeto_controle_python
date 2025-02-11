@@ -180,6 +180,13 @@ class ListExpenseFrame(ctk.CTkFrame):
     def __init__(self, master, frame):
         super().__init__(master)
         columns = ("Data", "Categoria", "Descrição", "Valor")
+        categorias = ['Alimentação',
+                      'Transporte',
+                      'Saúde',
+                      'Educação',
+                      'Lazer',
+                      'Outros',
+                      'Selecione uma categoria']
 
         self.expenses_frame = frame
 
@@ -195,6 +202,19 @@ class ListExpenseFrame(ctk.CTkFrame):
                                   justify='center')
         self.title.grid(row=0, column=0, columnspan=2,
                         pady=20, padx=20, sticky="nsew")
+
+        self.category_select = tk.StringVar()
+        self.dropdown_categoria_filter = ctk.CTkOptionMenu(self.expenses_frame,
+                                                           values=categorias,
+                                                           fg_color='black',
+                                                           width=250,
+                                                           button_hover_color='purple',
+                                                           button_color='gray',
+                                                           corner_radius=6,
+                                                           variable=self.category_select)
+        self.dropdown_categoria_filter.set("Selecione uma categoria")
+        self.dropdown_categoria_filter.grid(row=1, column=0, pady=10, padx=10)
+        self.category_select.trace("w", self.list_expenses)
 
         self.style_tree = ttk.Style()
         self.style_tree.theme_use("clam")
@@ -240,22 +260,27 @@ class ListExpenseFrame(ctk.CTkFrame):
 
         self.list_expenses()
 
-    def list_expenses(self):
+    def list_expenses(self, *args):
+        category_selected = self.category_select.get().lower()
+
         for row in self.tree.get_children():
             self.tree.delete(row)
+
+        total = 0
 
         try:
 
             with open(arquivo_csv, mode="r", newline='') as file:
                 reader = csv.reader(file)
                 next(reader)
-                total = 0
+
                 for linha in reader:
-                    self.tree.insert("", "end", values=linha)
-                    self.convert_currency = linha[3].replace(
-                        "R$", "").replace(".", "").replace(",", ".").strip()
-                    self.converted_currency = float(self.convert_currency)
-                    total += self.converted_currency
+                    if category_selected == "selecione uma categoria" or linha[1].lower() == category_selected:
+                        self.tree.insert("", "end", values=linha)
+                        self.convert_currency = linha[3].replace(
+                            "R$", "").replace(".", "").replace(",", ".").strip()
+                        self.converted_currency = float(self.convert_currency)
+                        total += self.converted_currency
 
         except FileNotFoundError:
             total = 0
@@ -354,20 +379,6 @@ class App(ctk.CTk):
                                          command=self.list_button_click)
         self.list_button.grid(row=3, column=0, sticky="ew")
 
-        # Botão Listar Gastos Categoria
-        self.category_button = ctk.CTkButton(self.navegation_frame,
-                                             corner_radius=6,
-                                             height=40,
-                                             border_spacing=10,
-                                             text="Listar Gastos Categoria",
-                                             image=self.icon_categoria,
-                                             fg_color="transparent",
-                                             text_color="White",
-                                             hover_color="gray",
-                                             anchor="w",
-                                             command=self.list_category_button_click)
-        self.category_button.grid(row=4, column=0, sticky="ew")
-
         # Botão Listar Gastos Mês
         self.month_button = ctk.CTkButton(self.navegation_frame,
                                           corner_radius=6,
@@ -433,10 +444,6 @@ class App(ctk.CTk):
                                        text='Lista de Gastos',
                                        font=('Arial Bold', 36))
 
-        self.title_list_category = ctk.CTkLabel(self.list_category_frame,
-                                                text='Lista de gastos por categoria',
-                                                font=('Arial Bold', 36))
-
         self.title_list_month = ctk.CTkLabel(self.list_month_frame,
                                              text='Lista de gastos por mês',
                                              font=('Arial Bold', 36))
@@ -456,111 +463,6 @@ class App(ctk.CTk):
             base_path = os.path.abspath(".")
 
         return os.path.join(base_path, relative_path)
-
-    def table_expenses(self):
-        self.style_tree = ttk.Style()
-        self.style_tree.theme_use("clam")
-        self.style_tree.configure("Treeview",
-                                  background="#2A2A2A",
-                                  foreground="white",
-                                  rowheight=25,
-                                  fieldbackground="#2A2A2A",
-                                  borderwidth=0,
-                                  padding=5)
-
-        self.style_tree.map("Treeview", background=[("selected", "#1F6AA5")])
-
-        self.style_tree.configure("Treeview.Heading",
-                                  background="#1F1F1F",
-                                  foreground="white",
-                                  font=("Arial", 10, "bold"))
-
-        self.table_frame = ctk.CTkFrame(self.list_frame,
-                                        corner_radius=6)
-        self.table_frame.grid(row=2, column=0, pady=10, sticky="nsew")
-
-        columns = ("Data", "Categoria", "Descrição", "Valor")
-        self.tree = ttk.Treeview(self.table_frame,
-                                 columns=columns,
-                                 show="headings")
-
-        self.tree.heading("Data", text="Data")
-        self.tree.column("Data", anchor="center")
-
-        self.tree.heading("Categoria", text="Categoria")
-        self.tree.column("Categoria", anchor="w")
-
-        self.tree.heading("Descrição", text="Descrição")
-        self.tree.column("Descrição", anchor="w")
-
-        self.tree.heading("Valor", text="Valor")
-        self.tree.column("Valor", anchor="w")
-
-        self.tree.grid(row=1, column=0, sticky="nsew")
-
-        self.lbl_total = ctk.CTkLabel(self.list_frame,
-                                      text="Total de gastos: R$ 0.00",
-                                      font=("Arial", 12, "bold"))
-        self.lbl_total.grid(row=2, column=0, pady=10)
-
-    def table_category_list(self):
-        # Dropdown Categoria
-        self.categoria_filter_var = tk.StringVar()
-        self.dropdown_categoria_filter = ctk.CTkOptionMenu(self.list_category_frame,
-                                                           values=[
-                                                               'Alimentação', 'Transporte', 'Saúde', 'Educação', 'Lazer', 'Outros'],
-                                                           fg_color='black',
-                                                           width=250,
-                                                           button_hover_color='purple',
-                                                           button_color='gray',
-                                                           variable=self.categoria_filter_var,
-                                                           corner_radius=6)
-        self.dropdown_categoria_filter.set("Selecione uma categoria")
-
-        self.style_tree_category = ttk.Style()
-        self.style_tree_category.theme_use("clam")
-        self.style_tree_category.configure("Treeview",
-                                           background="#2A2A2A",
-                                           foreground="white",
-                                           rowheight=25,
-                                           fieldbackground="#2A2A2A",
-                                           borderwidth=0,
-                                           padding=5)
-
-        self.style_tree_category.map("Treeview", background=[
-                                     ("selected", "#1F6AA5")])
-
-        self.style_tree_category.configure("Treeview.Heading",
-                                           background="#1F1F1F",
-                                           foreground="white",
-                                           font=("Arial", 10, "bold"))
-
-        self.table_frame_catagory = ctk.CTkFrame(self.list_category_frame,
-                                                 corner_radius=6)
-        self.table_frame_catagory.grid(row=2, column=0, pady=10, sticky="nsew")
-
-        columns = ("Data", "Categoria", "Descrição", "Valor")
-        self.tree_catagory = ttk.Treeview(self.table_frame_catagory,
-                                          columns=columns,
-                                          show="headings")
-
-        self.tree_catagory.heading("Data", text="Data")
-        self.tree_catagory.column("Data", anchor="center")
-
-        self.tree_catagory.heading("Categoria", text="Categoria")
-        self.tree_catagory.column("Categoria", anchor="w")
-
-        self.tree_catagory.heading("Descrição", text="Descrição")
-        self.tree_catagory.column("Descrição", anchor="w")
-
-        self.tree_catagory.heading("Valor", text="Valor")
-        self.tree_catagory.column("Valor", anchor="w")
-
-        self.tree_catagory.grid(row=1, column=0, sticky="nsew")
-
-        self.lbl_total_catagory = ctk.CTkLabel(self.list_category_frame,
-                                               text="Total de gastos: R$ 0.00",
-                                               font=("Arial", 12, "bold"))
 
     def table_month_list(self):
         # Dropdown Categoria
@@ -669,35 +571,6 @@ class App(ctk.CTk):
     def export_csv_button_click(self):
         self.export_csv()
 
-    def list_category_expenses(self, *args):
-        categoria_selecionada = self.categoria_filter_var.get().lower()
-
-        for row in self.tree_catagory.get_children():  # Use tree_catagory aqui
-            self.tree_catagory.delete(row)
-
-        total = 0
-
-        try:  # Lidar com FileNotFoundError
-            with open(arquivo_csv, mode="r", newline='') as csv_file:
-                reader_csv = csv.reader(csv_file)
-                next(reader_csv)  # Pular o cabeçalho
-
-                for linha_csv in reader_csv:
-                    if categoria_selecionada == "selecione uma categoria" or linha_csv[1].lower() == categoria_selecionada:
-                        self.tree_catagory.insert("", "end", values=linha_csv)
-                        self.valor = linha_csv[3].replace(
-                            "R$", "").replace(".", "").replace(",", ".").strip()
-                        self.valor_float = float(self.valor)
-                        total = total + self.valor_float
-        except FileNotFoundError:
-            total = 0
-            messagebox.showwarning(
-                "Aviso", f"Arquivo {arquivo_csv} não encontrado.")
-            return
-
-        self.lbl_total_catagory.configure(
-            text=f'Total de gastos: R$ {total:.2f}')
-
     def list_month_expenses(self, *args):
         month_select = self.month_filter_var.get().lower()
 
@@ -773,9 +646,6 @@ class App(ctk.CTk):
         self.list_button.configure(fg_color="gray"
                                    if name == "Listar Gastos" else "transparent")
 
-        self.category_button.configure(fg_color="gray"
-                                       if name == "Listar Gastos Categoria" else "transparent")
-
         self.month_button.configure(fg_color="gray"
                                     if name == "Listar Gastos Mês" else "transparent")
 
@@ -806,23 +676,6 @@ class App(ctk.CTk):
 
         else:
             self.list_frame.grid_forget()
-
-        if name == "Listar Gastos Categoria":
-            self.list_category_frame.grid(row=0, column=1, sticky="nsew")
-            self.title_list_category.grid(row=0, column=0, pady=20, padx=20)
-
-            self.table_category_list()
-
-            self.dropdown_categoria_filter.grid(
-                row=1, column=0, pady=10, padx=10)
-
-            self.categoria_filter_var.trace("w", self.list_category_expenses)
-
-            self.list_category_expenses()
-            self.lbl_total_catagory.grid(row=7, column=0, pady=10)
-
-        else:
-            self.list_category_frame.grid_forget()
 
         if name == "Listar Gastos Mês":
             self.list_month_frame.grid(row=0, column=1, sticky="nsew")
@@ -860,9 +713,6 @@ class App(ctk.CTk):
 
     def list_button_click(self):
         self.select_frame_by_name('Listar Gastos')
-
-    def list_category_button_click(self):
-        self.select_frame_by_name('Listar Gastos Categoria')
 
     def list_month_button_click(self):
         self.select_frame_by_name('Listar Gastos Mês')
