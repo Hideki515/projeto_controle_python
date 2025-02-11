@@ -312,7 +312,7 @@ class App(ctk.CTk):
 
         self.expenses_frame = ctk.CTkFrame(self,
                                            corner_radius=0,
-                                           fg_color='purple')
+                                           fg_color='transparent')
 
         self.list_frame = ctk.CTkFrame(self,
                                        corner_radius=0,
