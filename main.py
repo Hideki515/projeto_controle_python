@@ -349,6 +349,59 @@ class ListExpenseFrame(ctk.CTkFrame):
         self.lbl_total.configure(text=f"Total de gastos: R$ {total:.2f}")
 
 
+class ExportFileFrame(ctk.CTkFrame):
+    def __init__(self, master, frame):
+        super().__init__(master)
+
+        self.export_frame = frame
+
+        # Configurar grid do export_frame
+        self.export_frame.grid_columnconfigure(0, weight=1)
+        self.export_frame.grid_columnconfigure(1, weight=1)
+        self.export_frame.grid_rowconfigure(6, weight=1)
+
+        self.title = ctk.CTkLabel(self.export_frame,
+                                  text='Exportar Gastos',
+                                  font=('Arial Bold', 36),
+                                  justify='center')
+        self.title.grid(row=0, column=0, columnspan=2, sticky="nsew")
+
+        self.export_csv_button = ctk.CTkButton(self.export_frame,
+                                               text='Exportar para CSV',
+                                               font=('Arial', 12),
+                                               fg_color='green',
+                                               hover_color='darkgreen',
+                                               border_width=0,
+                                               corner_radius=7,
+                                               command=self.export_csv)
+        self.export_csv_button.grid(row=3, column=1, pady=10,
+                                    padx=10, sticky="w")
+
+    def export_csv(self):
+        file_path = asksaveasfilename(defaultextension=".csv", filetypes=[
+            ("CSV files", "*.csv")])
+
+        if not file_path:
+            return
+
+        try:
+            with open(arquivo_csv, mode="r", newline='') as file, open(file_path, mode="w", newline='') as file_export:
+                reader = csv.reader(file)
+                writer = csv.writer(file_export, delimiter=",")
+                for row in reader:
+                    writer.writerow(row)
+
+            # Informa o usuario
+            messagebox.showinfo(
+                "Sucesso", f"Arquivo exportado para: {file_path}")
+
+        except Exception as e:
+            messagebox.showerror(
+                "Erro", f"Ocorreu um erro ao exportar o arquivo: {e}")
+
+        return
+
+
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
@@ -463,14 +516,6 @@ class App(ctk.CTk):
                                        corner_radius=0,
                                        fg_color='transparent')
 
-        self.list_category_frame = ctk.CTkFrame(self,
-                                                corner_radius=0,
-                                                fg_color='transparent')
-
-        self.list_month_frame = ctk.CTkFrame(self,
-                                             corner_radius=0,
-                                             fg_color='transparent')
-
         self.export_frame = ctk.CTkFrame(self,
                                          corner_radius=0,
                                          fg_color='transparent')
@@ -487,10 +532,6 @@ class App(ctk.CTk):
         self.title_list = ctk.CTkLabel(self.list_frame,
                                        text='Lista de Gastos',
                                        font=('Arial Bold', 36))
-
-        self.title_list_month = ctk.CTkLabel(self.list_month_frame,
-                                             text='Lista de gastos por mês',
-                                             font=('Arial Bold', 36))
 
         self.title_export = ctk.CTkLabel(self.export_frame,
                                          text='Exportar Gastos',
@@ -517,33 +558,6 @@ class App(ctk.CTk):
                                                border_width=0,
                                                corner_radius=7,
                                                command=self.export_csv_button_click)
-
-    def export_csv(self):
-        file_path = asksaveasfilename(defaultextension=".csv", filetypes=[
-                                      ("CSV files", "*.csv")])
-
-        if not file_path:
-            return
-
-        try:
-            with open(arquivo_csv, mode="r", newline='') as file, open(file_path, mode="w", newline='') as file_export:
-                reader = csv.reader(file)
-                writer = csv.writer(file_export, delimiter=",")
-                for row in reader:
-                    writer.writerow(row)
-
-            # Informa o usuario
-            messagebox.showinfo(
-                "Sucesso", f"Arquivo exportado para: {file_path}")
-
-        except Exception as e:
-            messagebox.showerror(
-                "Erro", f"Ocorreu um erro ao exportar o arquivo: {e}")
-
-        return
-
-    def export_csv_button_click(self):
-        self.export_csv()
 
     def select_frame_by_name(self, name):
         self.home_button.configure(fg_color="gray"
@@ -583,30 +597,11 @@ class App(ctk.CTk):
         else:
             self.list_frame.grid_forget()
 
-        if name == "Listar Gastos Mês":
-            self.list_month_frame.grid(row=0, column=1, sticky="nsew")
-            self.title_list_month.grid(row=0, column=0, pady=20, padx=20)
-
-            self.table_month_list()
-
-            self.dropdown_month_filter.grid(row=1, column=0, pady=10, padx=10)
-
-            self.month_filter_var.trace("w", self.list_month_expenses)
-
-            self.list_month_expenses()
-
-            self.lbl_total_month.grid(row=7, column=0, pady=10)
-        else:
-            self.list_month_frame.grid_forget()
-
         if name == "Exportar Gastos":
             self.export_frame.grid(row=0, column=1, sticky="nsew")
-            self.title_export.grid(pady=20, padx=20, sticky="nsew")
 
-            self.export_files()
-
-            self.export_csv_button.grid(row=1, column=0, pady=10,
-                                        padx=10, sticky="nsew")
+            self.ExportExpenseFrame = ExportFileFrame(
+                self, frame=self.export_frame)
 
         else:
             self.export_frame.grid_forget()
