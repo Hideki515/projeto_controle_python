@@ -187,6 +187,18 @@ class ListExpenseFrame(ctk.CTkFrame):
                       'Lazer',
                       'Outros',
                       'Selecione uma categoria']
+        meses = ['Janeiro',
+                 'Fevereiro',
+                 'Março',
+                 'Abril',
+                 'Maio',
+                 'Junho',
+                 'Julho',
+                 'Agosto',
+                 'Setembro',
+                 'Outubro',
+                 'Novembro',
+                 'Dezembro']
 
         self.expenses_frame = frame
 
@@ -216,6 +228,19 @@ class ListExpenseFrame(ctk.CTkFrame):
         self.dropdown_categoria_filter.grid(row=1, column=0, pady=10, padx=10)
         self.category_select.trace("w", self.list_expenses)
 
+        self.month_select = tk.StringVar()
+        self.dropdown_categoria_filter = ctk.CTkOptionMenu(self.expenses_frame,
+                                                           values=meses,
+                                                           fg_color='black',
+                                                           width=250,
+                                                           button_hover_color='purple',
+                                                           button_color='gray',
+                                                           corner_radius=6,
+                                                           variable=self.month_select)
+        self.dropdown_categoria_filter.set("Selecione um mês")
+        self.dropdown_categoria_filter.grid(row=2, column=0, pady=10, padx=10)
+        self.month_select.trace("w", self.list_expenses)
+
         self.style_tree = ttk.Style()
         self.style_tree.theme_use("clam")
         self.style_tree.configure("Treeview",
@@ -233,7 +258,7 @@ class ListExpenseFrame(ctk.CTkFrame):
                                   font=("Arial", 10, "bold"))
         self.table_frame = ctk.CTkFrame(self.expenses_frame,
                                         corner_radius=6)
-        self.table_frame.grid(row=2, column=0, pady=10, sticky="nsew")
+        self.table_frame.grid(row=4, column=0, pady=10, sticky="nsew")
 
         self.tree = ttk.Treeview(self.table_frame,
                                  columns=columns,
@@ -256,17 +281,44 @@ class ListExpenseFrame(ctk.CTkFrame):
         self.lbl_total = ctk.CTkLabel(self.expenses_frame,
                                       text="Total de gastos: R$ 0.00",
                                       font=("Arial", 12, "bold"))
-        self.lbl_total.grid(row=3, column=0, pady=10)
+        self.lbl_total.grid(row=5, column=0, pady=10)
 
         self.list_expenses()
 
+    def convert_month_name_to_number(self, month_name):
+        meses = {
+            "janeiro": 1, "jan": 1,
+            "fevereiro": 2, "fev": 2,
+            "março": 3, "marco": 3, "mar": 3, "Março": 3, "MARCO": 3,  # Todas as variações
+            "abril": 4, "abr": 4,
+            "maio": 5, "mai": 5,
+            "junho": 6, "jun": 6,
+            "julho": 7, "jul": 7,
+            "agosto": 8, "ago": 8,
+            "setembro": 9, "set": 9,
+            "outubro": 10, "out": 10,
+            "novembro": 11, "nov": 11,
+            "dezembro": 12, "dez": 12,
+        }
+        return "%02d" % meses.get(month_name.lower())
+
     def list_expenses(self, *args):
         category_selected = self.category_select.get().lower()
+        month_name_selected = self.month_select.get().lower()
+
+        if month_name_selected == "selecione um mês":
+            month_number_selected = None
+        else:
+            month_number_selected = self.convert_month_name_to_number(
+                month_name_selected)
 
         for row in self.tree.get_children():
             self.tree.delete(row)
 
         total = 0
+
+        filter_by_category = category_selected != "selecione uma categoria"
+        filter_by_month = month_number_selected is not None
 
         try:
 
@@ -275,7 +327,13 @@ class ListExpenseFrame(ctk.CTkFrame):
                 next(reader)
 
                 for linha in reader:
-                    if category_selected == "selecione uma categoria" or linha[1].lower() == category_selected:
+
+                    category_match = not filter_by_category or linha[1] == category_selected
+                    month_match = not filter_by_month or linha[0].split(
+                        '.')[1] == month_number_selected
+
+                    if category_match and month_match:
+
                         self.tree.insert("", "end", values=linha)
                         self.convert_currency = linha[3].replace(
                             "R$", "").replace(".", "").replace(",", ".").strip()
@@ -379,20 +437,6 @@ class App(ctk.CTk):
                                          command=self.list_button_click)
         self.list_button.grid(row=3, column=0, sticky="ew")
 
-        # Botão Listar Gastos Mês
-        self.month_button = ctk.CTkButton(self.navegation_frame,
-                                          corner_radius=6,
-                                          height=40,
-                                          border_spacing=10,
-                                          text="Listar Gastos Mês",
-                                          image=self.icon_calendar,
-                                          fg_color="transparent",
-                                          text_color="White",
-                                          hover_color="gray",
-                                          anchor="w",
-                                          command=self.list_month_button_click)
-        self.month_button.grid(row=5, column=0, sticky="ew")
-
         # Botão Exportar Gastos
         self.export_button = ctk.CTkButton(self.navegation_frame,
                                            corner_radius=6,
@@ -464,76 +508,6 @@ class App(ctk.CTk):
 
         return os.path.join(base_path, relative_path)
 
-    def table_month_list(self):
-        # Dropdown Categoria
-        meses = ['Janeiro',
-                 'Fevereiro',
-                 'Março',
-                 'Abril',
-                 'Maio',
-                 'Junho',
-                 'Julho',
-                 'Agosto',
-                 'Setembro',
-                 'Outubro',
-                 'Novembro',
-                 'Dezembro']
-        self.month_filter_var = tk.StringVar()
-        self.dropdown_month_filter = ctk.CTkOptionMenu(self.list_month_frame,
-                                                       values=meses,
-                                                       fg_color='black',
-                                                       width=250,
-                                                       button_hover_color='purple',
-                                                       button_color='gray',
-                                                       variable=self.month_filter_var,
-                                                       corner_radius=6)
-        self.dropdown_month_filter.set("Selecione um Mês")
-
-        self.style_tree_category = ttk.Style()
-        self.style_tree_category.theme_use("clam")
-        self.style_tree_category.configure("Treeview",
-                                           background="#2A2A2A",
-                                           foreground="white",
-                                           rowheight=25,
-                                           fieldbackground="#2A2A2A",
-                                           borderwidth=0,
-                                           padding=5)
-
-        self.style_tree_category.map("Treeview", background=[
-                                     ("selected", "#1F6AA5")])
-
-        self.style_tree_category.configure("Treeview.Heading",
-                                           background="#1F1F1F",
-                                           foreground="white",
-                                           font=("Arial", 10, "bold"))
-
-        self.table_frame_catagory = ctk.CTkFrame(self.list_month_frame,
-                                                 corner_radius=6)
-        # self.table_frame_catagory.grid(row=3, column=0, pady=10, sticky="nsew")
-
-        columns = ("Data", "Categoria", "Descrição", "Valor")
-        self.tree_catagory = ttk.Treeview(self.list_month_frame,
-                                          columns=columns,
-                                          show="headings")
-
-        self.tree_catagory.heading("Data", text="Data")
-        self.tree_catagory.column("Data", anchor="center")
-
-        self.tree_catagory.heading("Categoria", text="Categoria")
-        self.tree_catagory.column("Categoria", anchor="w")
-
-        self.tree_catagory.heading("Descrição", text="Descrição")
-        self.tree_catagory.column("Descrição", anchor="w")
-
-        self.tree_catagory.heading("Valor", text="Valor")
-        self.tree_catagory.column("Valor", anchor="w")
-
-        self.tree_catagory.grid(row=2, column=0, sticky="nsew")
-
-        self.lbl_total_month = ctk.CTkLabel(self.list_month_frame,
-                                            text="Total de gastos: R$ 0.00",
-                                            font=("Arial", 12, "bold"))
-
     def export_files(self):
         self.export_csv_button = ctk.CTkButton(self.export_frame,
                                                text='Exportar para CSV',
@@ -571,71 +545,6 @@ class App(ctk.CTk):
     def export_csv_button_click(self):
         self.export_csv()
 
-    def list_month_expenses(self, *args):
-        month_select = self.month_filter_var.get().lower()
-
-        match month_select:
-            case "selecione um mês":
-                month_number = '00'
-            case "janeiro":
-                month_number = '01'
-            case "fevereiro":
-                month_number = '02'
-            case "março":
-                month_number = '03'
-            case "abril":
-                month_number = '04'
-            case "maio":
-                month_number = '05'
-            case "junho":
-                month_number = '06'
-            case "julho":
-                month_number = '07'
-            case "agosto":
-                month_number = '08'
-            case "setembro":
-                month_number = '09'
-            case "outubro":
-                month_number = '10'
-            case "novembro":
-                month_number = '11'
-            case "dezembro":
-                month_number = '12'
-
-        for row in self.tree_catagory.get_children():
-            self.tree_catagory.delete(row)
-
-        total = 0
-
-        try:
-            with open(arquivo_csv, mode="r", newline='') as csv_file:
-                reader_csv = csv.reader(csv_file)
-                next(reader_csv)  # Pular o cabeçalho
-
-                for linha_csv in reader_csv:
-
-                    try:
-                        data_gasto_csv = datetime.strptime(
-                            linha_csv[0], "%d.%m.%Y")
-                    except ValueError:
-                        continue
-
-                    if month_number and data_gasto_csv.strftime("%m") == month_number:
-                        self.tree_catagory.insert("", "end", values=linha_csv)
-                        self.valor = linha_csv[3].replace(
-                            "R$", "").replace(".", "").replace(",", ".").strip()
-                        self.valor_float = float(self.valor)
-                        total = total + self.valor_float
-
-        except FileNotFoundError:
-            total = 0
-            messagebox.showwarning(
-                "Aviso", f"Arquivo {arquivo_csv} não encontrado.")
-            return
-
-        self.lbl_total_month.configure(
-            text=f'Total de gastos: R$ {total:.2f}')
-
     def select_frame_by_name(self, name):
         self.home_button.configure(fg_color="gray"
                                    if name == "Home" else "transparent")
@@ -644,10 +553,7 @@ class App(ctk.CTk):
                                        if name == "adicionar_gasto" else "transparent")
 
         self.list_button.configure(fg_color="gray"
-                                   if name == "Listar Gastos" else "transparent")
-
-        self.month_button.configure(fg_color="gray"
-                                    if name == "Listar Gastos Mês" else "transparent")
+                                   if name == "listar_gastos" else "transparent")
 
         self.export_button.configure(fg_color="gray"
                                      if name == "Exportar Gastos" else "transparent")
@@ -668,7 +574,7 @@ class App(ctk.CTk):
         else:
             self.expenses_frame.grid_forget()
 
-        if name == "Listar Gastos":
+        if name == "listar_gastos":
             self.list_frame.grid(row=0, column=1, sticky="nsew")
 
             self.ListExpenseFrame = ListExpenseFrame(
@@ -712,10 +618,7 @@ class App(ctk.CTk):
         self.select_frame_by_name('adicionar_gasto')
 
     def list_button_click(self):
-        self.select_frame_by_name('Listar Gastos')
-
-    def list_month_button_click(self):
-        self.select_frame_by_name('Listar Gastos Mês')
+        self.select_frame_by_name('listar_gastos')
 
     def export_button_click(self):
         self.select_frame_by_name('Exportar Gastos')
